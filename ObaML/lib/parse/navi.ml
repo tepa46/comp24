@@ -41,4 +41,4 @@ module Located : Wrap = struct
 end
 
 module LocatedAst =
-  Ast (Located) (Located) (Located) (Located) (Located) (Fiction) (Located)
+  Ast (Located) (Located) (Located) (Located) (Located) (Located) (Located)
