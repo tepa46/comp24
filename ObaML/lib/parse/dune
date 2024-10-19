@@ -1,0 +1,8 @@
+(library
+ (name parse)
+ (public_name ObaML.Parse)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
+ (inline_tests)
+ (instrumentation
+  (backend bisect_ppx)))
