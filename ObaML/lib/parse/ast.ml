@@ -102,7 +102,7 @@ module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap)
     | Nonrecursive (** without [rec] modifier *)
   [@@deriving eq, show { with_path = false }]
 
-  (** [let _ arg1 arg2 (arg3_fst, _) = arg1 + arg2 + arg3_fst ] *)
+  (** [let a = e;;] | [let fst, snd = pair in fst + snd] *)
   type value_binding = Pattern.t W.t * t W.t [@@deriving eq, show { with_path = false }]
 
   (** [Tree(left, right) -> left, right] *)
@@ -112,8 +112,15 @@ module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap)
     | EVar of Id.t W.t (** [x] *)
     | EConst of Constant.t W.t (** [52] | ["hola"] *)
     | ELet of rec_flag * value_binding W.t list * t W.t
-    (** [let rec p1 = e1 and p2 = e2 in e] *)
-    | EFun of value_binding W.t (** [fun x -> x] *)
+    (** [let rec p1 = e1 and p2 = e2 in e]
+        with arguments: [let f x y = x + y in e] as
+        [ELet(
+          Nonrecursive,
+          [PVar f],
+          EFun(
+            [PVar x; PVar y],
+            EVar e))] *)
+    | EFun of Pattern.t W.t list * t W.t (** [fun x -> x] *)
     | EFunction of case W.t list (** [function 1 -> true | _ -> false] *)
     | EApply of t W.t * t W.t (** [f x] *)
     | EMatch of t W.t * case W.t list (** [match x with | 1 | 2 -> true | _ -> false] *)
