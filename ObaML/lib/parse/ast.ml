@@ -25,7 +25,7 @@ end
 
 module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
   module Var = struct
-    type t = Var of string [@@deriving eq, ord, show { with_path = false }]
+    type t = TyVar of string [@@deriving eq, ord, show { with_path = false }]
   end
 
   module Expr = struct
@@ -108,20 +108,18 @@ module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap)
   (** [Tree(left, right) -> left, right] *)
   and case = Pattern.t W.t * t W.t [@@deriving eq, show { with_path = false }]
 
+  and fun_body =
+    | FunBody of t W.t (** [fun x y -> x + y] *)
+    | FunCases of case W.t list
+  [@@deriving eq, show { with_path = false }]
+
   and t =
     | EVar of Id.t W.t (** [x] *)
     | EConst of Constant.t W.t (** [52] | ["hola"] *)
     | ELet of rec_flag * value_binding W.t list * t W.t
-    (** [let rec p1 = e1 and p2 = e2 in e]
-        with arguments: [let f x y = x + y in e] as
-        [ELet(
-          Nonrecursive,
-          [PVar f],
-          EFun(
-            [PVar x; PVar y],
-            EVar e))] *)
-    | EFun of Pattern.t W.t list * t W.t (** [fun x -> x] *)
-    | EFunction of case W.t list (** [function 1 -> true | _ -> false] *)
+    (** [let rec p1 = e1 and p2 = e2 in e] *)
+    | EFun of Pattern.t W.t list * Ty.Expr.t W.t option * fun_body W.t
+    (** [fun x y z -> x + y + z] | [function 1 -> true | _ -> false] *)
     | EApply of t W.t * t W.t (** [f x] *)
     | EMatch of t W.t * case W.t list (** [match x with | 1 | 2 -> true | _ -> false] *)
     | ETuple of t W.t list (** [fst, snd, trd] *)
@@ -171,3 +169,46 @@ struct
 
   type t = StructureItem.t W.t list [@@deriving eq, show { with_path = false }]
 end
+
+(********************************Examples********************************)
+
+(** let fun with arguments: [let f x y = e1 in e2]
+    processed as [let f = fun x y -> e1 in e2] as
+    [ELet(
+      Nonrecursive,
+name: [(PVar(f), EFun(
+            args: [PVar(x); PVar(y)],
+            type: None,
+                  FunBody(EVar(e1))))],
+      e2)] *)
+
+(** let pattern: [let (((fst, snd) : int * int): int * int): int * int = e1 in e2]
+    [ELet(
+      Nonrecursive,
+      [(PType(
+          PType(
+            PType(
+              PTuple([PVar fst; PVar snd]), 
+              TTuple([int; int])),
+            TTuple([int; int])),
+          TTuple([int; int])), e1)],
+      e2)]*)
+
+(** typed let fun with arguments: [let f x y: string = e1 in e2]
+    processed as [let f = fun x y: string -> e1 in e2]
+    [ELet(
+      Nonrecursive,
+name: [(PVar(f), EFun(
+            args: [PVar(x); PVar(y)],
+            type: Some(TConstr([], string)),
+                  FunBody(EVar(e1))))],
+      e2)] *)
+
+(** typed let with function: [let f : func_type = function p1 -> e1 | p2 -> e2 in e3]
+    [ELet(
+      Nonrecursive,
+      [(PVar(f), EFun(
+                  [],
+            type: Some(TConstr([], func_type))
+                  FunCases([(p1, e1); (p2, e2)])))],
+      e3)] *)
