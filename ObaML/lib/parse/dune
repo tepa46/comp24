@@ -1,0 +1,22 @@
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules tokens)
+ (flags --only-tokens))
+
+(menhir
+ (modules tokens parser)
+ (merge_into parser)
+ (flags --table --external-tokens Tokens))
+
+(library
+ (name parse)
+ (public_name ObaML.Parse)
+ (libraries menhirLib)
+ (flags :standard -color always -safe-string -warn-error -a+8 -w -50)
+ (preprocess
+  (pps ppx_expect ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
+ (inline_tests)
+ (instrumentation
+  (backend bisect_ppx)))
