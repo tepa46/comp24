@@ -24,6 +24,8 @@ end
 (********************************Types********************************)
 
 module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
+  module Id = Id
+
   module Var = struct
     type t = TyVar of string [@@deriving eq, ord, show { with_path = false }]
   end
@@ -34,7 +36,7 @@ module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
     type t =
       | TVar of Var.t W.t (** ['a] *)
       | TArrow of t W.t * t W.t (** ['a --> 'b] *)
-      | TTuple of t W.t list (** ['a * 'b * 'c] *)
+      | TTuple of t W.t list (** ['a * 'b * 'c], invariant: [list length >= 2] *)
       | TConstr of t W.t list * Id.t W.t (** [int] | ['a list] | [('a, 'b) Result] *)
     [@@deriving eq, show { with_path = false }]
   end
@@ -45,7 +47,7 @@ module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
     (** [Leaf] | [Node of 'a] *)
     type constr =
       { name : Id.t W.t
-      ; args : Expr.t W.t
+      ; args : Expr.t W.t option
       }
     [@@deriving eq, show { with_path = false }]
 
@@ -67,6 +69,8 @@ end
 (********************************Constans********************************)
 
 module Constant (W : Wrap) = struct
+  module W = W
+
   type t =
     | CInt of int W.t (** [52] *)
     | CString of string W.t (** [ "hola" ] *)
@@ -76,14 +80,16 @@ end
 (********************************Patterns********************************)
 
 module Pattern (W : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap) = struct
+  module Id = Id
   module Constant = Constant (CW)
   module Ty = Ty (TyExprW) (TyDeclW)
+  module W = W
 
   type t =
     | PAny (** [_] *)
     | PVar of Id.t W.t (** [variable] *)
     | PConst of Constant.t W.t (** [52] | ["hola"]*)
-    | PTuple of t W.t list (** [first, second, third] *)
+    | PTuple of t W.t list (** [first, second, third], invariant: [list length >= 2] *)
     | PConstruct of Id.t W.t * t W.t option (** [Tree(left, right)] | [None] *)
     | PType of t W.t * Ty.Expr.t W.t (** [x : int] *)
     | POr of t W.t * t W.t (** [First | Second | Third] *)
@@ -93,9 +99,11 @@ end
 (********************************Expressions********************************)
 
 module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap) = struct
+  module Id = Id
+  module Constant = Constant (CW)
+  module Ty = Ty (TyExprW) (TyDeclW)
   module Pattern = Pattern (PW) (CW) (TyExprW) (TyDeclW)
-  module Constant = Pattern.Constant
-  module Ty = Pattern.Ty
+  module W = W
 
   type rec_flag =
     | Recursive (** with [rec] modifier *)
@@ -120,7 +128,7 @@ module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap)
     (** [let rec p1 = e1 and p2 = e2 in e] *)
     | EFun of Pattern.t W.t list * Ty.Expr.t W.t option * fun_body W.t
     (** [fun x y z -> x + y + z] | [function 1 -> true | _ -> false] *)
-    | EApply of t W.t * t W.t (** [f x] *)
+    | EApply of t W.t * t W.t list (** [f x y], invariant: [list length > 0] *)
     | EMatch of t W.t * case W.t list (** [match x with | 1 | 2 -> true | _ -> false] *)
     | ETuple of t W.t list (** [fst, snd, trd] *)
     | EConstruct of Id.t W.t * t W.t option (** [Some 42] *)
@@ -138,10 +146,9 @@ module StructureItem
     (TyExprW : Wrap)
     (TyDeclW : Wrap) =
 struct
+  module Ty = Ty (TyExprW) (TyDeclW)
   module Expr = Expr (EW) (PW) (CW) (TyExprW) (TyDeclW)
-  module Pattern = Expr.Pattern
-  module Constant = Expr.Constant
-  module Ty = Expr.Ty
+  module W = W
 
   type t =
     | SITyDecl of Ty.Decl.t W.t (** [type bool = true | false] *)
@@ -150,9 +157,9 @@ struct
   [@@deriving eq, show { with_path = false }]
 end
 
-(********************************Ast********************************)
+(********************************Structure********************************)
 
-module Ast
+module Structure
     (W : Wrap)
     (SIW : Wrap)
     (EW : Wrap)
@@ -162,53 +169,26 @@ module Ast
     (TyDeclW : Wrap) =
 struct
   module StructureItem = StructureItem (SIW) (EW) (PW) (CW) (TyExprW) (TyDeclW)
-  module Expr = StructureItem.Expr
-  module Pattern = StructureItem.Pattern
-  module Constant = StructureItem.Constant
-  module Ty = StructureItem.Ty
 
   type t = StructureItem.t W.t list [@@deriving eq, show { with_path = false }]
 end
 
-(********************************Examples********************************)
+(********************************Ast********************************)
 
-(** let fun with arguments: [let f x y = e1 in e2]
-    processed as [let f = fun x y -> e1 in e2] as
-    [ELet(
-      Nonrecursive,
-name: [(PVar(f), EFun(
-            args: [PVar(x); PVar(y)],
-            type: None,
-                  FunBody(EVar(e1))))],
-      e2)] *)
-
-(** let pattern: [let (((fst, snd) : int * int): int * int): int * int = e1 in e2]
-    [ELet(
-      Nonrecursive,
-      [(PType(
-          PType(
-            PType(
-              PTuple([PVar fst; PVar snd]), 
-              TTuple([int; int])),
-            TTuple([int; int])),
-          TTuple([int; int])), e1)],
-      e2)]*)
-
-(** typed let fun with arguments: [let f x y: string = e1 in e2]
-    processed as [let f = fun x y: string -> e1 in e2]
-    [ELet(
-      Nonrecursive,
-name: [(PVar(f), EFun(
-            args: [PVar(x); PVar(y)],
-            type: Some(TConstr([], string)),
-                  FunBody(EVar(e1))))],
-      e2)] *)
-
-(** typed let with function: [let f : func_type = function p1 -> e1 | p2 -> e2 in e3]
-    [ELet(
-      Nonrecursive,
-      [(PVar(f), EFun(
-                  [],
-            type: Some(TConstr([], func_type))
-                  FunCases([(p1, e1); (p2, e2)])))],
-      e3)] *)
+module Ast
+    (SW : Wrap)
+    (SIW : Wrap)
+    (EW : Wrap)
+    (PW : Wrap)
+    (CW : Wrap)
+    (TyExprW : Wrap)
+    (TyDeclW : Wrap) =
+struct
+  module Id = Id
+  module Constant = Constant (CW)
+  module Ty = Ty (TyExprW) (TyDeclW)
+  module Pattern = Pattern (PW) (CW) (TyExprW) (TyDeclW)
+  module Expr = Expr (EW) (PW) (CW) (TyExprW) (TyDeclW)
+  module StructureItem = StructureItem (SIW) (EW) (PW) (CW) (TyExprW) (TyDeclW)
+  module Structure = Structure (SW) (SIW) (EW) (PW) (CW) (TyExprW) (TyDeclW)
+end
