@@ -1,32 +1,30 @@
 open Ast
 
-module Location = struct
+module Position = struct
   type t =
-    { begin_pos : Lexing.position
-    ; end_pos : Lexing.position
+    { line : int
+    ; col : int
     }
+  [@@deriving eq, show { with_path = false }]
 
-  let show_lex_pos : Lexing.position -> string =
-    fun { pos_fname = fname; pos_lnum = lnum; pos_bol = bol; pos_cnum = cnum } ->
-    Printf.sprintf "[%s: %d %d %d]" fname lnum bol cnum
+  let from_lex ({ pos_lnum = line; pos_bol = bol; pos_cnum = cnum; _ } : Lexing.position) =
+    { line; col = cnum - bol }
   ;;
-
-  let show loc =
-    let begin_pos = show_lex_pos loc.begin_pos in
-    let end_pos = show_lex_pos loc.end_pos in
-    Printf.sprintf "{begin_pos: %s; end_pos: %s}" begin_pos end_pos
-  ;;
-
-  let pp fmt loc = show loc |> Format.pp_print_string fmt
-
-  let equal { begin_pos = lbp; end_pos = lep } { begin_pos = rbp; end_pos = rep } =
-    lbp = rbp && lep = rep
-  ;;
-
-  let by_begin_end begin_pos end_pos = { begin_pos; end_pos }
 end
 
-module Located : Wrap = struct
+module Location = struct
+  type t =
+    { begin_pos : Position.t
+    ; end_pos : Position.t
+    }
+  [@@deriving eq, show { with_path = false }]
+
+  let from_lex_poss begin_pos end_pos =
+    { begin_pos = Position.from_lex begin_pos; end_pos = Position.from_lex end_pos }
+  ;;
+end
+
+module Located = struct
   type 'a t =
     { data : 'a
     ; location : Location.t
@@ -35,9 +33,11 @@ module Located : Wrap = struct
 
   let escape { data; location = _ } = data
 
-  let by_data_begin_end data begin_pos end_pos =
-    { data; location = Location.by_begin_end begin_pos end_pos }
+  let from_lex_poss data begin_pos end_pos =
+    { data; location = Location.from_lex_poss begin_pos end_pos }
   ;;
+
+  let from_lex_pos_pair data (begin_pos, end_pos) = from_lex_poss data begin_pos end_pos
 end
 
 module LocatedAst =
