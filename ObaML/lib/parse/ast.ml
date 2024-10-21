@@ -173,9 +173,9 @@ struct
   type t = StructureItem.t W.t list [@@deriving eq, show { with_path = false }]
 end
 
-(********************************Ast********************************)
+(********************************Make********************************)
 
-module Ast
+module Make
     (SW : Wrap)
     (SIW : Wrap)
     (EW : Wrap)
