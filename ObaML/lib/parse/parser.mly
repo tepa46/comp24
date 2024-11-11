@@ -72,11 +72,15 @@ end>
 
 %start <Semantics.Id.t> parse_id
 
+%start <Semantics.Constant.t> parse_constant
+
 %start <Semantics.Ty.Decl.t> parse
 
 %%
 
 parse_id : identifier EOF { $1 }
+
+parse_constant : constant EOF { $1 }
 
 parse : ty_decl EOF { $1 }
 

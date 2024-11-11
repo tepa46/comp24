@@ -46,35 +46,22 @@ struct
       | I.Rejected -> raise @@ SyntaxError (Some "Rejected")
     ;;
 
-    let parse_id lexbuf =
+    let parse parse lexbuf =
       try
-        let id = loop lexbuf (Parser.Incremental.parse_id lexbuf.lex_curr_p) in
-        Ok id
+        let v = loop lexbuf (parse lexbuf.lex_curr_p) in
+        Ok v
       with
       | SyntaxError msg_opt -> Error msg_opt
     ;;
 
-    let id_from_string s =
-      let lexbuf = Lexing.from_string s in
-      parse_id lexbuf
-    ;;
-
-    let parse lexbuf =
-      try
-        let structure = loop lexbuf (Parser.Incremental.parse lexbuf.lex_curr_p) in
-        Ok structure
-      with
-      | SyntaxError msg_opt -> Error msg_opt
-    ;;
-
-    let from_string s =
-      let lexbuf = Lexing.from_string s in
-      parse lexbuf
-    ;;
+    let parse_id = parse Parser.Incremental.parse_id
+    let id_from_string s = parse_id @@ Lexing.from_string s
+    let parse_constant = parse Parser.Incremental.parse_constant
+    let constant_from_string s = parse_constant @@ Lexing.from_string s
   end
 
   let id_from_string = Parse.id_from_string
-  let from_string = Parse.from_string
+  let constant_from_string = Parse.constant_from_string
 end
 
 (***************************Tests***************************)
@@ -94,19 +81,138 @@ let print_result val_pp = function
 
 let parse_and_print s = Parse.id_from_string s |> print_result Ast.Id.pp
 
-let%expect_test "Id test1" =
+let%expect_test "Id test" =
   parse_and_print {| variable |};
   [%expect {| (Id "variable") |}]
 ;;
 
-let%expect_test "Id test2" =
+let%expect_test "Id start lower test" =
   parse_and_print {| hEaD_52_tAiL_ |};
   [%expect {| (Id "hEaD_52_tAiL_") |}]
 ;;
 
-let%expect_test "Id test3" =
+let%expect_test "Id start upper test" =
   parse_and_print {| HeAd_52_TaIl |};
   [%expect {| (Id "HeAd_52_TaIl") |}]
+;;
+
+(***************************Constant*Parser*Tests***************************)
+
+let parse_and_print s = Parse.constant_from_string s |> print_result Ast.Constant.pp
+
+let%expect_test "Constant int test" =
+  parse_and_print {| 52 |};
+  [%expect
+    {|
+    (CInt
+       { data = 52;
+         location =
+         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 3 } } }) |}]
+;;
+
+let%expect_test "Constant int leading zero test" =
+  parse_and_print {| 052 |};
+  [%expect
+    {|
+    (CInt
+       { data = 52;
+         location =
+         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+;;
+
+let%expect_test "Constant int leading plus test" =
+  parse_and_print {| +52 |};
+  [%expect
+    {|
+    (CInt
+       { data = 52;
+         location =
+         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+;;
+
+let%expect_test "Constant int leading minus test" =
+  parse_and_print {| -52 |};
+  [%expect
+    {|
+    (CInt
+       { data = -52;
+         location =
+         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+;;
+
+let%expect_test "Constant int leading sign zero test" =
+  parse_and_print {| +052 |};
+  [%expect
+    {|
+    (CInt
+       { data = 52;
+         location =
+         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 5 } } }) |}]
+;;
+
+let%expect_test "Constant string empty test" =
+  parse_and_print {| "" |};
+  [%expect
+    {|
+    (CString
+       { data = "";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 2 } } }) |}]
+;;
+
+let%expect_test "Constant string letters test" =
+  parse_and_print {| " lEtTeRs " |};
+  [%expect
+    {|
+    (CString
+       { data = " lEtTeRs ";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 11 } }
+         }) |}]
+;;
+
+let%expect_test "Constant string digits test" =
+  parse_and_print {| " 0123456789 " |};
+  [%expect
+    {|
+    (CString
+       { data = " 0123456789 ";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 14 } }
+         }) |}]
+;;
+
+let%expect_test "Constant string math symbols test" =
+  parse_and_print {| " + - * / = < > ( ) & | ^ " |};
+  [%expect
+    {|
+    (CString
+       { data = " + - * / = < > ( ) & | ^ ";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 27 } }
+         }) |}]
+;;
+
+let%expect_test "Constant string grammar symbols test" =
+  parse_and_print {| " . , ? ! ` : ; ' " |};
+  [%expect
+    {|
+    (CString
+       { data = " . , ? ! ` : ; ' ";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 19 } }
+         }) |}]
+;;
+
+let%expect_test "Constant string special symbols test" =
+  parse_and_print {| " ~ [ ] { } # $ _ @ " |};
+  [%expect
+    {|
+    (CString
+       { data = " ~ [ ] { } # $ _ @ ";
+         location =
+         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 21 } }
+         }) |}]
 ;;
 
 (***************************Other*Tests***************************)

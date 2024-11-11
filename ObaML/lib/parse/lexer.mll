@@ -20,7 +20,7 @@ let operator_char = ['~' '!' '?' '%' '<' ':' '.'] | core_operator_char
 (************constants************)
 let c_int = sign? digit+
 
-let c_string = '"' (letter | digit | math | grammar | special)* '"'
+let c_string = '"' (letter | digit | math | grammar | special | ' ')* '"'
 
 (************Names************)
 
