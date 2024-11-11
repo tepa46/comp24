@@ -124,7 +124,7 @@ module Expr (W : Wrap) (PW : Wrap) (CW : Wrap) (TyExprW : Wrap) (TyDeclW : Wrap)
   and t =
     | EVar of Id.t W.t (** [x] *)
     | EConst of Constant.t W.t (** [52] | ["hola"] *)
-    | ELet of rec_flag * value_binding W.t list * t W.t
+    | ELet of rec_flag W.t * value_binding W.t list * t W.t
     (** [let rec p1 = e1 and p2 = e2 in e] *)
     | EFun of Pattern.t W.t list * Ty.Expr.t W.t option * fun_body W.t
     (** [fun x y z -> x + y + z] | [function 1 -> true | _ -> false] *)
@@ -153,7 +153,7 @@ struct
   type t =
     | SITyDecl of Ty.Decl.t W.t (** [type bool = true | false] *)
     | SIExpr of Expr.t W.t (** [5 + 2] *)
-    | SILet of Expr.rec_flag * Expr.value_binding W.t list (** [let rec f = None;;] *)
+    | SILet of Expr.rec_flag W.t * Expr.value_binding W.t list (** [let rec f = None;;] *)
   [@@deriving eq, show { with_path = false }]
 end
 
