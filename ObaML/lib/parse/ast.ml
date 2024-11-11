@@ -35,7 +35,7 @@ module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
 
     type t =
       | TVar of Var.t W.t (** ['a] *)
-      | TArrow of t W.t * t W.t (** ['a --> 'b] *)
+      | TArrow of t W.t * t W.t (** ['a -> 'b] *)
       | TTuple of t W.t list (** ['a * 'b * 'c], invariant: [list length >= 2] *)
       | TConstr of t W.t list * Id.t W.t (** [int] | ['a list] | [('a, 'b) Result] *)
     [@@deriving eq, show { with_path = false }]
@@ -66,7 +66,7 @@ module Ty (ExprW : Wrap) (DeclW : Wrap) = struct
   end
 end
 
-(********************************Constans********************************)
+(********************************Constants********************************)
 
 module Constant (W : Wrap) = struct
   module W = W
