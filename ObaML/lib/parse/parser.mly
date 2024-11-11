@@ -70,11 +70,13 @@ end>
     open Semantics
 %}
 
-
+%start <Semantics.Id.t> parse_id
 
 %start <Semantics.Ty.Decl.t> parse
 
 %%
+
+parse_id : identifier EOF { $1 }
 
 parse : ty_decl EOF { $1 }
 
@@ -113,7 +115,7 @@ molecular_ty_expr :
     | atomic_ty_expr { $1 }
     | separated_nontrivial_list(ASTERISK, w_atomic_ty_expr) { Ty.Expr.ttuple $1 }
 
-%inline w_molecular_ty_expr: molecular_ty_expr { Ty.Expr.wrap $1 $loc }
+%inline w_molecular_ty_expr : molecular_ty_expr { Ty.Expr.wrap $1 $loc }
 
 atomic_ty_expr :
     | parens(ty_expr) { $1 }
@@ -174,4 +176,4 @@ constr_name :
 
 %inline parens(x) : LPAREN x RPAREN { $2 }
 
-%inline separated_nontrivial_list(separator, x): x separator separated_nonempty_list(separator, x) { $1 :: $3 }
+%inline separated_nontrivial_list(separator, x) : x separator separated_nonempty_list(separator, x) { $1 :: $3 }

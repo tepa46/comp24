@@ -14,11 +14,8 @@ module Make
     (PWB : WrapBuilder(PW).T)
     (CWB : WrapBuilder(CW).T)
     (TEWB : WrapBuilder(TEW).T)
-    (TDWB : WrapBuilder(TDW).T) : sig
-  val from_string
-    :  string
-    -> (Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Decl.t, string option) result
-end = struct
+    (TDWB : WrapBuilder(TDW).T) =
+struct
   module Semantics =
     Semantics.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (SWB) (SIWB) (EWB) (PWB) (CWB)
       (TEWB)
@@ -49,6 +46,19 @@ end = struct
       | I.Rejected -> raise @@ SyntaxError (Some "Rejected")
     ;;
 
+    let parse_id lexbuf =
+      try
+        let id = loop lexbuf (Parser.Incremental.parse_id lexbuf.lex_curr_p) in
+        Ok id
+      with
+      | SyntaxError msg_opt -> Error msg_opt
+    ;;
+
+    let id_from_string s =
+      let lexbuf = Lexing.from_string s in
+      parse_id lexbuf
+    ;;
+
     let parse lexbuf =
       try
         let structure = loop lexbuf (Parser.Incremental.parse lexbuf.lex_curr_p) in
@@ -63,15 +73,44 @@ end = struct
     ;;
   end
 
+  let id_from_string = Parse.id_from_string
   let from_string = Parse.from_string
 end
 
-(***************************checks***************************)
+(***************************Tests***************************)
 
 open Located
 module L = Located
 module LB = LocatedBuilder
-module P = Make (L) (L) (L) (L) (L) (L) (L) (LB) (LB) (LB) (LB) (LB) (LB) (LB)
+module Parse = Make (L) (L) (L) (L) (L) (L) (L) (LB) (LB) (LB) (LB) (LB) (LB) (LB)
+module Ast = Ast.Make (L) (L) (L) (L) (L) (L) (L)
+
+let print_result val_pp = function
+  | Ok v -> Stdlib.Format.printf "%a" val_pp v
+  | Error _ -> Stdlib.Printf.printf "Error"
+;;
+
+(***************************Id*Parser*Tests***************************)
+
+let parse_and_print s = Parse.id_from_string s |> print_result Ast.Id.pp
+
+let%expect_test "Id test1" =
+  parse_and_print {| variable |};
+  [%expect {| (Id "variable") |}]
+;;
+
+let%expect_test "Id test2" =
+  parse_and_print {| hEaD_52_tAiL_ |};
+  [%expect {| (Id "hEaD_52_tAiL_") |}]
+;;
+
+let%expect_test "Id test3" =
+  parse_and_print {| HeAd_52_TaIl |};
+  [%expect {| (Id "HeAd_52_TaIl") |}]
+;;
+
+(***************************Other*Tests***************************)
+
 (* let used_pp = Semantics.Semantics.Constant.pp *)
 (* let used_pp = Semantics.Semantics.Ty.Expr.pp *)
 (* let used_pp = Semantics.Semantics.Ty.Decl.pp *)
