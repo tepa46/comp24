@@ -74,6 +74,12 @@ end>
 
 %start <Semantics.Constant.t> parse_constant
 
+%start <Semantics.Ty.Var.t> parse_ty_var
+
+%start <Semantics.Ty.Expr.t> parse_ty_expr
+
+%start <Semantics.Ty.Decl.t> parse_ty_decl
+
 %start <Semantics.Ty.Decl.t> parse
 
 %%
@@ -81,6 +87,12 @@ end>
 parse_id : identifier EOF { $1 }
 
 parse_constant : constant EOF { $1 }
+
+parse_ty_var : ty_var EOF { $1 }
+
+parse_ty_expr : ty_expr EOF { $1 }
+
+parse_ty_decl : ty_decl EOF { $1 }
 
 parse : ty_decl EOF { $1 }
 
@@ -172,7 +184,7 @@ constr_name :
 
 %inline constr_false : FALSE { Id.id "false" }
 
-%inline constr_coloncolon : parens(COLONCOLON) { Id.id "(::)" }
+%inline constr_coloncolon : parens(COLONCOLON) { Id.id "::" }
 
 %inline constr_brackets : LBRACKET RBRACKET { Id.id "[]" }
 
