@@ -1,6 +1,7 @@
 (library
  (name Wrap)
  (public_name ObaML.Wrap)
+ (libraries Navi)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq))
  (instrumentation
