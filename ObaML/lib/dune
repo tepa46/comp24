@@ -1,0 +1,16 @@
+(copy_files# wrap/wrap.ml{,i})
+
+(copy_files# navi/navi.ml{,i})
+
+(copy_files# ast/ast.ml{,i})
+
+(copy_files# located/located.ml{,i})
+
+(library
+ (name ObaML)
+ (public_name ObaML)
+ (modules Ast Located Navi Wrap)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
+ (instrumentation
+  (backend bisect_ppx)))

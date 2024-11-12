@@ -1,0 +1,7 @@
+(library
+ (name Navi)
+ (public_name ObaML.Navi)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq))
+ (instrumentation
+  (backend bisect_ppx)))
