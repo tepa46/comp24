@@ -1,68 +1,85 @@
-module WrapBuilder (W : Ast.Wrap) = struct
-  module type T = sig
-    val wrap : 'a -> Navi.Location.t -> 'a W.t
-  end
-end
-
 let to_loc (begin_p, end_p) = Navi.Location.from_lex_poss begin_p end_p
 
-module Id : sig
-  type t = Ast.Id.t
+module Id
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T) : sig
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t
 
   val id : string -> t
 end = struct
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
   include Ast.Id
 
   let id s = Id s
 end
 
 module Ty
-    (EW : Ast.Wrap)
-    (DW : Ast.Wrap)
-    (EWB : WrapBuilder(EW).T)
-    (DWB : WrapBuilder(DW).T) : sig
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (EWB : Wrap.Builder(TEW).T)
+    (DWB : Wrap.Builder(TDW).T) : sig
   module Var : sig
-    type t = Ast.Ty(EW)(DW).Var.t
+    type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Var.t
 
     val tyvar : string -> t
   end
 
   module Expr : sig
-    type t = Ast.Ty(EW)(DW).Expr.t
+    type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Expr.t
     type 'a w
 
     val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
     val tvar : Var.t w -> t
     val tarrow : t w -> t w -> t
     val ttuple : t w list -> t
-    val tconstr : t w list -> Id.t w -> t
+    val tconstr : t w list -> Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w -> t
   end
 
   module Decl : sig
     type constr
     type representation
-    type t = Ast.Ty(EW)(DW).Decl.t
+    type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Decl.t
     type 'a w
 
     val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
-    val constr : Id.t w -> Expr.t w option -> constr
+
+    val constr
+      :  Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w
+      -> Expr.t w option
+      -> constr
+
     val fromtyexpr : Expr.t w -> representation
     val fromconstrs : constr w list -> representation
-    val decl : Id.t w -> Var.t w list -> representation w -> t
+
+    val decl
+      :  Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w
+      -> Var.t w list
+      -> representation w
+      -> t
   end
 end = struct
-  module AstTy = Ast.Ty (EW) (DW)
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
 
   module Var = struct
-    include AstTy.Var
+    include Ast.Ty.Var
 
     let tyvar s = TyVar s
   end
 
   module Expr = struct
-    include AstTy.Expr
+    include Ast.Ty.Expr
 
-    type 'a w = 'a W.t
+    type 'a w = 'a TEW.t
 
     let wrap t loc = to_loc loc |> EWB.wrap t
     let tvar var = TVar var
@@ -72,9 +89,9 @@ end = struct
   end
 
   module Decl = struct
-    include AstTy.Decl
+    include Ast.Ty.Decl
 
-    type 'a w = 'a W.t
+    type 'a w = 'a TDW.t
 
     let wrap t loc = to_loc loc |> DWB.wrap t
     let constr name args = { name; args }
@@ -84,164 +101,212 @@ end = struct
   end
 end
 
-module Constant (CW : Ast.Wrap) (WB : WrapBuilder(CW).T) : sig
-  type t = Ast.Constant(CW).t
+module Constant
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (WB : Wrap.Builder(CW).T) : sig
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Constant.t
   type 'a w
 
   val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
   val cint : int w -> t
   val cstring : string w -> t
 end = struct
-  include Ast.Constant (CW)
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  include Ast.Constant
 
-  type 'a w = 'a W.t
+  type 'a w = 'a CW.t
 
   let wrap t loc = to_loc loc |> WB.wrap t
   let cint i = CInt i
   let cstring s = CString s
 end
 
-module Make
-    (SW : Ast.Wrap)
-    (SIW : Ast.Wrap)
-    (EW : Ast.Wrap)
-    (PW : Ast.Wrap)
-    (CW : Ast.Wrap)
-    (TEW : Ast.Wrap)
-    (TDW : Ast.Wrap)
-    (SWB : WrapBuilder(SW).T)
-    (SIWB : WrapBuilder(SIW).T)
-    (EWB : WrapBuilder(EW).T)
-    (PWB : WrapBuilder(PW).T)
-    (CWB : WrapBuilder(CW).T)
-    (TEWB : WrapBuilder(TEW).T)
-    (TDWB : WrapBuilder(TDW).T) =
-struct
-  module Id = Id
-  module Ty = Ty (TEW) (TDW) (TEWB) (TDWB)
-  module Constant = Constant (CW) (CWB)
+module Pattern
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (WB : Wrap.Builder(PW).T) : sig
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Pattern.t
+  type 'a w
+
+  val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
+  val pany : t
+  val pvar : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w -> t
+  val pconst : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Constant.t w -> t
+  val ptuple : t w list -> t
+  val pconstruct : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w -> t w option -> t
+  val ptype : t w -> Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Expr.t w -> t
+  val por : t w -> t w -> t
+end = struct
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  include Ast.Pattern
+
+  type 'a w = 'a PW.t
+
+  let wrap t loc = to_loc loc |> WB.wrap t
+  let pany = PAny
+  let pvar v = PVar v
+  let pconst c = PConst c
+  let ptuple ps = PTuple ps
+  let pconstruct n p_opt = PConstruct (n, p_opt)
+  let ptype p t = PType (p, t)
+  let por p1 p2 = POr (p1, p2)
 end
 
-(* module Semantics : sig
-   module Id : sig
-   type t
+module Expr
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (WB : Wrap.Builder(EW).T) : sig
+  type rec_flag = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.rec_flag
+  type value_binding = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.value_binding
+  type case = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.case
+  type fun_body = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.fun_body
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.t
+  type 'a w
 
-   val equal : t -> t -> bool
-   val compare : t -> t -> int
-   val pp : Format.formatter -> t -> unit
-   val show : t -> string
-   val id : string -> t
-   end
+  val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
+  val recursive : rec_flag
+  val nonrecursive : rec_flag
 
-   module Ty : sig
-   module Var : sig
-   type t
+  val value_binding
+    :  Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Pattern.t w
+    -> t w
+    -> value_binding
 
-   val equal : t -> t -> bool
-   val compare : t -> t -> int
-   val pp : Format.formatter -> t -> unit
-   val show : t -> string
-   val tyvar : string -> t
-   end
+  val case : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Pattern.t w -> t w -> value_binding
+  val funbody : t w -> fun_body
+  val funcases : case w list -> fun_body
+  val evar : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w -> t
+  val econst : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Constant.t w -> t
+  val elet : rec_flag w -> value_binding w list -> t w -> t
 
-   module Expr : sig
-   type t
+  val efun
+    :  Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Pattern.t w list
+    -> Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Expr.t w option
+    -> fun_body w
+    -> t
 
-   val equal : t -> t -> bool
-   val pp : Format.formatter -> t -> unit
-   val show : t -> string
+  val eapply : t w -> t w list -> t
+  val ematch : t w -> case w list -> t
+  val etuple : t w list -> t
+  val econstruct : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Id.t w -> t w option -> t
+  val eifthenelse : t w -> t w -> t w option -> t
+end = struct
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  include Ast.Expr
 
-   type 'a w
+  type 'a w = 'a EW.t
 
-   val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
-   val tvar : Var.t w -> t
-   val tarrow : t w -> t w -> t
-   val ttuple : t w list -> t
-   val tconstr : t w list -> Id.t w -> t
-   end
+  let wrap t loc = to_loc loc |> WB.wrap t
+  let recursive = Recursive
+  let nonrecursive = Nonrecursive
+  let value_binding p t : value_binding = p, t
+  let case p t : case = p, t
+  let funbody t = FunBody t
+  let funcases cs = FunCases cs
+  let evar v = EVar v
+  let econst c = EConst c
+  let elet rf vbs t = ELet (rf, vbs, t)
+  let efun ps t_opt fb = EFun (ps, t_opt, fb)
+  let eapply t ts = EApply (t, ts)
+  let ematch t cs = EMatch (t, cs)
+  let etuple ts = ETuple ts
+  let econstruct n t_opt = EConstruct (n, t_opt)
+  let eifthenelse i t e = EIfThenElse (i, t, e)
+end
 
-   module Decl : sig
-   type constr
+module StructureItem
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (WB : Wrap.Builder(SIW).T) : sig
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).StructureItem.t
+  type 'a w
 
-   val equal_constr : constr -> constr -> bool
-   val pp_constr : Format.formatter -> constr -> unit
-   val show_constr : constr -> string
+  val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
+  val sitydecl : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Ty.Decl.t w -> t
+  val siexpr : Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.t w -> t
 
-   type representation
+  val silet
+    :  Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.rec_flag w
+    -> Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Expr.value_binding w list
+    -> t
+end = struct
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  include Ast.StructureItem
 
-   val equal_representation : representation -> representation -> bool
-   val pp_representation : Format.formatter -> representation -> unit
-   val show_representation : representation -> string
+  type 'a w = 'a SIW.t
 
-   type t
+  let wrap t loc = to_loc loc |> WB.wrap t
+  let sitydecl td = SITyDecl td
+  let siexpr e = SIExpr e
+  let silet rf vbs = SILet (rf, vbs)
+end
 
-   val equal : t -> t -> bool
-   val pp : Format.formatter -> t -> unit
-   val show : t -> string
+module Structure
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (WB : Wrap.Builder(SW).T) : sig
+  type t = Ast.Make(SW)(SIW)(EW)(PW)(CW)(TEW)(TDW).Structure.t
+  type 'a w
 
-   type 'a w
+  val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
+  val structure : t -> t
+end = struct
+  module Ast = Ast.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  include Ast.Structure
 
-   val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
-   val constr : Id.t w -> Expr.t w option -> constr
-   val fromtyexpr : Expr.t w -> representation
-   val fromconstrs : constr w list -> representation
-   val decl : Id.t w -> Var.t w list -> representation w -> t
-   end
-   end
+  type 'a w = 'a SW.t
 
-   module Constant : sig
-   type t
+  let wrap t loc = to_loc loc |> WB.wrap t
+  let structure sis : t = sis
+end
 
-   val equal : t -> t -> bool
-   val pp : Format.formatter -> t -> unit
-   val show : t -> string
-
-   type 'a w
-
-   val wrap : 'a -> Lexing.position * Lexing.position -> 'a w
-   val cint : int w -> t
-   val cstring : string w -> t
-   end
-
-   (* module Pattern : sig
-   type t
-   end *)
-
-   (* module Expr : sig
-   type rec_flag
-   type value_binding
-   type case
-   type t
-   end *)
-
-   (* module StructureItem : sig
-   type t
-   end *)
-
-   (* module Structure : sig
-   type t
-   end *)
-   end = struct
-   module Id = IdSemantics
-   module Ty = TySemantics
-   module Constant = ConstantSemantics
-
-   module Pattern = struct
-   type t
-   end
-
-   module Expr = struct
-   type rec_flag
-   type value_binding
-   type case
-   type t
-   end
-
-   module StructureItem = struct
-   type t
-   end
-
-   module Structure = struct
-   type t
-   end
-   end *)
+module Make
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (SWB : Wrap.Builder(SW).T)
+    (SIWB : Wrap.Builder(SIW).T)
+    (EWB : Wrap.Builder(EW).T)
+    (PWB : Wrap.Builder(PW).T)
+    (CWB : Wrap.Builder(CW).T)
+    (TEWB : Wrap.Builder(TEW).T)
+    (TDWB : Wrap.Builder(TDW).T) =
+struct
+  module Id = Id (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW)
+  module Ty = Ty (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (TEWB) (TDWB)
+  module Constant = Constant (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (CWB)
+  module Pattern = Pattern (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (PWB)
+  module Expr = Expr (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (EWB)
+  module StructureItem = StructureItem (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (SIWB)
+  module Structure = Structure (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (SWB)
+end
