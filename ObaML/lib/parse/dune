@@ -11,10 +11,9 @@
  (flags --table --external-tokens Tokens))
 
 (library
- (name parse)
+ (name Parse)
  (public_name ObaML.Parse)
  (libraries menhirLib Ast Navi Wrap)
- (flags :standard -color always -safe-string -warn-error -a+8 -w -50)
  (preprocess
   (pps ppx_expect ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
  (inline_tests)
