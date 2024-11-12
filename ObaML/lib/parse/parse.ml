@@ -1,20 +1,18 @@
-module WrapBuilder = Semantics.WrapBuilder
-
 module Make
-    (SW : Ast.Wrap)
-    (SIW : Ast.Wrap)
-    (EW : Ast.Wrap)
-    (PW : Ast.Wrap)
-    (CW : Ast.Wrap)
-    (TEW : Ast.Wrap)
-    (TDW : Ast.Wrap)
-    (SWB : WrapBuilder(SW).T)
-    (SIWB : WrapBuilder(SIW).T)
-    (EWB : WrapBuilder(EW).T)
-    (PWB : WrapBuilder(PW).T)
-    (CWB : WrapBuilder(CW).T)
-    (TEWB : WrapBuilder(TEW).T)
-    (TDWB : WrapBuilder(TDW).T) =
+    (SW : Wrap.T)
+    (SIW : Wrap.T)
+    (EW : Wrap.T)
+    (PW : Wrap.T)
+    (CW : Wrap.T)
+    (TEW : Wrap.T)
+    (TDW : Wrap.T)
+    (SWB : Wrap.Builder(SW).T)
+    (SIWB : Wrap.Builder(SIW).T)
+    (EWB : Wrap.Builder(EW).T)
+    (PWB : Wrap.Builder(PW).T)
+    (CWB : Wrap.Builder(CW).T)
+    (TEWB : Wrap.Builder(TEW).T)
+    (TDWB : Wrap.Builder(TDW).T) =
 struct
   module Semantics =
     Semantics.Make (SW) (SIW) (EW) (PW) (CW) (TEW) (TDW) (SWB) (SIWB) (EWB) (PWB) (CWB)
@@ -75,11 +73,26 @@ end
 
 (***************************Tests***************************)
 
-open Located
-module L = Located
-module LB = LocatedBuilder
-module Parse = Make (L) (L) (L) (L) (L) (L) (L) (LB) (LB) (LB) (LB) (LB) (LB) (LB)
-module Ast = Ast.Make (L) (L) (L) (L) (L) (L) (L)
+module Fiction : Wrap.T with type 'a t = 'a = struct
+  type 'a t = 'a [@@deriving eq, show { with_path = false }]
+end
+
+module FictionBuilder : Wrap.Builder(Fiction).T = struct
+  let wrap v _ = v
+end
+
+module Parse =
+  Make (Fiction) (Fiction) (Fiction) (Fiction) (Fiction) (Fiction) (Fiction)
+    (FictionBuilder)
+    (FictionBuilder)
+    (FictionBuilder)
+    (FictionBuilder)
+    (FictionBuilder)
+    (FictionBuilder)
+    (FictionBuilder)
+
+module Ast =
+  Ast.Make (Fiction) (Fiction) (Fiction) (Fiction) (Fiction) (Fiction) (Fiction)
 
 let print_result val_pp = function
   | Ok v -> Stdlib.Format.printf "%a" val_pp v
