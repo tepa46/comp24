@@ -124,117 +124,57 @@ let parse_and_print s = Parse.constant_from_string s |> print_result Ast.Constan
 
 let%expect_test "Constant int test" =
   parse_and_print {| 52 |};
-  [%expect
-    {|
-    (CInt
-       { data = 52;
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 3 } } }) |}]
+  [%expect {| (CInt 52) |}]
 ;;
 
 let%expect_test "Constant int leading zero test" =
   parse_and_print {| 052 |};
-  [%expect
-    {|
-    (CInt
-       { data = 52;
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+  [%expect {| (CInt 52) |}]
 ;;
 
 let%expect_test "Constant int leading plus test" =
   parse_and_print {| +52 |};
-  [%expect
-    {|
-    (CInt
-       { data = 52;
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+  [%expect {| (CInt 52) |}]
 ;;
 
 let%expect_test "Constant int leading minus test" =
   parse_and_print {| -52 |};
-  [%expect
-    {|
-    (CInt
-       { data = -52;
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }) |}]
+  [%expect {| (CInt -52) |}]
 ;;
 
 let%expect_test "Constant int leading sign zero test" =
   parse_and_print {| +052 |};
-  [%expect
-    {|
-    (CInt
-       { data = 52;
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 5 } } }) |}]
+  [%expect {| (CInt 52) |}]
 ;;
 
 let%expect_test "Constant string empty test" =
   parse_and_print {| "" |};
-  [%expect
-    {|
-    (CString
-       { data = "";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 2 } } }) |}]
+  [%expect {| (CString "") |}]
 ;;
 
 let%expect_test "Constant string letters test" =
   parse_and_print {| " lEtTeRs " |};
-  [%expect
-    {|
-    (CString
-       { data = " lEtTeRs ";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 11 } }
-         }) |}]
+  [%expect {| (CString " lEtTeRs ") |}]
 ;;
 
 let%expect_test "Constant string digits test" =
   parse_and_print {| " 0123456789 " |};
-  [%expect
-    {|
-    (CString
-       { data = " 0123456789 ";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 14 } }
-         }) |}]
+  [%expect {| (CString " 0123456789 ") |}]
 ;;
 
 let%expect_test "Constant string math symbols test" =
   parse_and_print {| " + - * / = < > ( ) & | ^ " |};
-  [%expect
-    {|
-    (CString
-       { data = " + - * / = < > ( ) & | ^ ";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 27 } }
-         }) |}]
+  [%expect {| (CString " + - * / = < > ( ) & | ^ ") |}]
 ;;
 
 let%expect_test "Constant string grammar symbols test" =
   parse_and_print {| " . , ? ! ` : ; ' " |};
-  [%expect
-    {|
-    (CString
-       { data = " . , ? ! ` : ; ' ";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 19 } }
-         }) |}]
+  [%expect {| (CString " . , ? ! ` : ; ' ") |}]
 ;;
 
 let%expect_test "Constant string special symbols test" =
   parse_and_print {| " ~ [ ] { } # $ _ @ " |};
-  [%expect
-    {|
-    (CString
-       { data = " ~ [ ] { } # $ _ @ ";
-         location =
-         { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 21 } }
-         }) |}]
+  [%expect {| (CString " ~ [ ] { } # $ _ @ ") |}]
 ;;
 
 (***************************Ty.Var***************************)
@@ -243,14 +183,12 @@ let parse_and_print s = Parse.ty_var_from_string s |> print_result Ast.Ty.Var.pp
 
 let%expect_test "Ty.Var upper test" =
   parse_and_print {| 'Upper52_ |};
-  [%expect {|
-    (TyVar "Upper52_") |}]
+  [%expect {| (TyVar "Upper52_") |}]
 ;;
 
 let%expect_test "Ty.Var lower test" =
   parse_and_print {| 'lower52_ |};
-  [%expect {|
-    (TyVar "lower52_") |}]
+  [%expect {| (TyVar "lower52_") |}]
 ;;
 
 (***************************Ty.Expr***************************)
@@ -259,76 +197,15 @@ let parse_and_print s = Parse.ty_expr_from_string s |> print_result Ast.Ty.Expr.
 
 let%expect_test "Ty.Expr var test" =
   parse_and_print {| 'a52_ |};
-  [%expect
-    {|
-    (TVar
-       { data = (TyVar "a52_");
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 6 } } }) |}]
+  [%expect {| (TVar (TyVar "a52_")) |}]
 ;;
 
 let%expect_test "Ty.Expr arrow test" =
   parse_and_print {| ('a -> 'b) -> ('c -> 'd)|};
   [%expect
     {|
-    (TArrow (
-       { data =
-         (TArrow (
-            { data =
-              (TVar
-                 { data = (TyVar "a");
-                   location =
-                   { begin_pos = { line = 1; col = 2 };
-                     end_pos = { line = 1; col = 4 } }
-                   });
-              location =
-              { begin_pos = { line = 1; col = 2 };
-                end_pos = { line = 1; col = 4 } }
-              },
-            { data =
-              (TVar
-                 { data = (TyVar "b");
-                   location =
-                   { begin_pos = { line = 1; col = 8 };
-                     end_pos = { line = 1; col = 10 } }
-                   });
-              location =
-              { begin_pos = { line = 1; col = 8 };
-                end_pos = { line = 1; col = 10 } }
-              }
-            ));
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 11 } }
-         },
-       { data =
-         (TArrow (
-            { data =
-              (TVar
-                 { data = (TyVar "c");
-                   location =
-                   { begin_pos = { line = 1; col = 16 };
-                     end_pos = { line = 1; col = 18 } }
-                   });
-              location =
-              { begin_pos = { line = 1; col = 16 };
-                end_pos = { line = 1; col = 18 } }
-              },
-            { data =
-              (TVar
-                 { data = (TyVar "d");
-                   location =
-                   { begin_pos = { line = 1; col = 22 };
-                     end_pos = { line = 1; col = 24 } }
-                   });
-              location =
-              { begin_pos = { line = 1; col = 22 };
-                end_pos = { line = 1; col = 24 } }
-              }
-            ));
-         location =
-         { begin_pos = { line = 1; col = 15 }; end_pos = { line = 1; col = 25 } }
-         }
-       )) |}]
+    (TArrow ((TArrow ((TVar (TyVar "a")), (TVar (TyVar "b")))),
+       (TArrow ((TVar (TyVar "c")), (TVar (TyVar "d")))))) |}]
 ;;
 
 let%expect_test "Ty.Expr tuple test" =
@@ -336,153 +213,26 @@ let%expect_test "Ty.Expr tuple test" =
   [%expect
     {|
     (TTuple
-       [{ data =
-          (TVar
-             { data = (TyVar "a");
-               location =
-               { begin_pos = { line = 1; col = 1 };
-                 end_pos = { line = 1; col = 3 } }
-               });
-          location =
-          { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 3 } }
-          };
-         { data =
-           (TArrow (
-              { data =
-                (TVar
-                   { data = (TyVar "b");
-                     location =
-                     { begin_pos = { line = 1; col = 7 };
-                       end_pos = { line = 1; col = 9 } }
-                     });
-                location =
-                { begin_pos = { line = 1; col = 7 };
-                  end_pos = { line = 1; col = 9 } }
-                },
-              { data =
-                (TVar
-                   { data = (TyVar "c");
-                     location =
-                     { begin_pos = { line = 1; col = 13 };
-                       end_pos = { line = 1; col = 15 } }
-                     });
-                location =
-                { begin_pos = { line = 1; col = 13 };
-                  end_pos = { line = 1; col = 15 } }
-                }
-              ));
-           location =
-           { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 16 }
-             }
-           };
-         { data =
-           (TVar
-              { data = (TyVar "d");
-                location =
-                { begin_pos = { line = 1; col = 19 };
-                  end_pos = { line = 1; col = 21 } }
-                });
-           location =
-           { begin_pos = { line = 1; col = 19 }; end_pos = { line = 1; col = 21 }
-             }
-           }
-         ]) |}]
+       [(TVar (TyVar "a")); (TArrow ((TVar (TyVar "b")), (TVar (TyVar "c"))));
+         (TVar (TyVar "d"))]) |}]
 ;;
 
 let%expect_test "Ty.Expr arrow tuple test" =
   parse_and_print {| 'a * 'b -> 'c * 'd |};
   [%expect
     {|
-    (TArrow (
-       { data =
-         (TTuple
-            [{ data =
-               (TVar
-                  { data = (TyVar "a");
-                    location =
-                    { begin_pos = { line = 1; col = 1 };
-                      end_pos = { line = 1; col = 3 } }
-                    });
-               location =
-               { begin_pos = { line = 1; col = 1 };
-                 end_pos = { line = 1; col = 3 } }
-               };
-              { data =
-                (TVar
-                   { data = (TyVar "b");
-                     location =
-                     { begin_pos = { line = 1; col = 6 };
-                       end_pos = { line = 1; col = 8 } }
-                     });
-                location =
-                { begin_pos = { line = 1; col = 6 };
-                  end_pos = { line = 1; col = 8 } }
-                }
-              ]);
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 8 } } },
-       { data =
-         (TTuple
-            [{ data =
-               (TVar
-                  { data = (TyVar "c");
-                    location =
-                    { begin_pos = { line = 1; col = 12 };
-                      end_pos = { line = 1; col = 14 } }
-                    });
-               location =
-               { begin_pos = { line = 1; col = 12 };
-                 end_pos = { line = 1; col = 14 } }
-               };
-              { data =
-                (TVar
-                   { data = (TyVar "d");
-                     location =
-                     { begin_pos = { line = 1; col = 17 };
-                       end_pos = { line = 1; col = 19 } }
-                     });
-                location =
-                { begin_pos = { line = 1; col = 17 };
-                  end_pos = { line = 1; col = 19 } }
-                }
-              ]);
-         location =
-         { begin_pos = { line = 1; col = 12 }; end_pos = { line = 1; col = 19 } }
-         }
-       )) |}]
+    (TArrow ((TTuple [(TVar (TyVar "a")); (TVar (TyVar "b"))]),
+       (TTuple [(TVar (TyVar "c")); (TVar (TyVar "d"))]))) |}]
 ;;
 
 let%expect_test "Ty.Expr simple constr test" =
   parse_and_print {| int |};
-  [%expect
-    {|
-    (TConstr ([],
-       { data = (Id "int");
-         location =
-         { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 4 } } }
-       )) |}]
+  [%expect {| (TConstr ([], (Id "int"))) |}]
 ;;
 
 let%expect_test "Ty.Expr single parametr constr test" =
   parse_and_print {| 'a list |};
-  [%expect
-    {|
-    (TConstr (
-       [{ data =
-          (TVar
-             { data = (TyVar "a");
-               location =
-               { begin_pos = { line = 1; col = 1 };
-                 end_pos = { line = 1; col = 3 } }
-               });
-          location =
-          { begin_pos = { line = 1; col = 1 }; end_pos = { line = 1; col = 3 } }
-          }
-         ],
-       { data = (Id "list");
-         location =
-         { begin_pos = { line = 1; col = 4 }; end_pos = { line = 1; col = 8 } } }
-       )) |}]
+  [%expect {| (TConstr ([(TVar (TyVar "a"))], (Id "list"))) |}]
 ;;
 
 let%expect_test "Ty.Expr parametrized constr test" =
@@ -490,106 +240,11 @@ let%expect_test "Ty.Expr parametrized constr test" =
   [%expect
     {|
     (TConstr (
-       [{ data =
-          (TTuple
-             [{ data =
-                (TVar
-                   { data = (TyVar "a");
-                     location =
-                     { begin_pos = { line = 1; col = 2 };
-                       end_pos = { line = 1; col = 4 } }
-                     });
-                location =
-                { begin_pos = { line = 1; col = 2 };
-                  end_pos = { line = 1; col = 4 } }
-                };
-               { data =
-                 (TConstr ([],
-                    { data = (Id "string");
-                      location =
-                      { begin_pos = { line = 1; col = 7 };
-                        end_pos = { line = 1; col = 13 } }
-                      }
-                    ));
-                 location =
-                 { begin_pos = { line = 1; col = 6 };
-                   end_pos = { line = 1; col = 13 } }
-                 }
-               ]);
-          location =
-          { begin_pos = { line = 1; col = 2 }; end_pos = { line = 1; col = 13 } }
-          };
-         { data =
-           (TArrow (
-              { data =
-                (TTuple
-                   [{ data =
-                      (TVar
-                         { data = (TyVar "a");
-                           location =
-                           { begin_pos = { line = 1; col = 15 };
-                             end_pos = { line = 1; col = 17 } }
-                           });
-                      location =
-                      { begin_pos = { line = 1; col = 15 };
-                        end_pos = { line = 1; col = 17 } }
-                      };
-                     { data =
-                       (TVar
-                          { data = (TyVar "b");
-                            location =
-                            { begin_pos = { line = 1; col = 20 };
-                              end_pos = { line = 1; col = 22 } }
-                            });
-                       location =
-                       { begin_pos = { line = 1; col = 20 };
-                         end_pos = { line = 1; col = 22 } }
-                       }
-                     ]);
-                location =
-                { begin_pos = { line = 1; col = 15 };
-                  end_pos = { line = 1; col = 22 } }
-                },
-              { data =
-                (TTuple
-                   [{ data =
-                      (TVar
-                         { data = (TyVar "c");
-                           location =
-                           { begin_pos = { line = 1; col = 26 };
-                             end_pos = { line = 1; col = 28 } }
-                           });
-                      location =
-                      { begin_pos = { line = 1; col = 26 };
-                        end_pos = { line = 1; col = 28 } }
-                      };
-                     { data =
-                       (TVar
-                          { data = (TyVar "d");
-                            location =
-                            { begin_pos = { line = 1; col = 31 };
-                              end_pos = { line = 1; col = 33 } }
-                            });
-                       location =
-                       { begin_pos = { line = 1; col = 31 };
-                         end_pos = { line = 1; col = 33 } }
-                       }
-                     ]);
-                location =
-                { begin_pos = { line = 1; col = 26 };
-                  end_pos = { line = 1; col = 33 } }
-                }
-              ));
-           location =
-           { begin_pos = { line = 1; col = 15 }; end_pos = { line = 1; col = 33 }
-             }
-           }
+       [(TTuple [(TVar (TyVar "a")); (TConstr ([], (Id "string")))]);
+         (TArrow ((TTuple [(TVar (TyVar "a")); (TVar (TyVar "b"))]),
+            (TTuple [(TVar (TyVar "c")); (TVar (TyVar "d"))])))
          ],
-       { data = (Id "Result");
-         location =
-         { begin_pos = { line = 1; col = 36 }; end_pos = { line = 1; col = 42 } }
-         }
-       )) |}]
+       (Id "Result"))) |}]
 ;;
 
 (***************************Ty.Decl***************************)
@@ -600,86 +255,18 @@ let%expect_test "Ty.Decl simple from ty expr test" =
   parse_and_print {| type int = string |};
   [%expect
     {|
-    { name =
-      { data = (Id "int");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 9 } } };
-      params = [];
-      representation =
-      { data =
-        (FromTyExpr
-           { data =
-             (TConstr ([],
-                { data = (Id "string");
-                  location =
-                  { begin_pos = { line = 1; col = 12 };
-                    end_pos = { line = 1; col = 18 } }
-                  }
-                ));
-             location =
-             { begin_pos = { line = 1; col = 11 };
-               end_pos = { line = 1; col = 18 } }
-             });
-        location =
-        { begin_pos = { line = 1; col = 10 }; end_pos = { line = 1; col = 18 } }
-        }
-      } |}]
+    { name = (Id "int"); params = [];
+      representation = (FromTyExpr (TConstr ([], (Id "string")))) } |}]
 ;;
 
 let%expect_test "Ty.Decl single parametr from ty expr test" =
   parse_and_print {| type 'a list = ('a, 'a) Result |};
   [%expect
     {|
-    { name =
-      { data = (Id "list");
-        location =
-        { begin_pos = { line = 1; col = 9 }; end_pos = { line = 1; col = 13 } } };
-      params =
-      [{ data = (TyVar "a");
-         location =
-         { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 8 } } }
-        ];
+    { name = (Id "list"); params = [(TyVar "a")];
       representation =
-      { data =
-        (FromTyExpr
-           { data =
-             (TConstr (
-                [{ data =
-                   (TVar
-                      { data = (TyVar "a");
-                        location =
-                        { begin_pos = { line = 1; col = 17 };
-                          end_pos = { line = 1; col = 19 } }
-                        });
-                   location =
-                   { begin_pos = { line = 1; col = 17 };
-                     end_pos = { line = 1; col = 19 } }
-                   };
-                  { data =
-                    (TVar
-                       { data = (TyVar "a");
-                         location =
-                         { begin_pos = { line = 1; col = 21 };
-                           end_pos = { line = 1; col = 23 } }
-                         });
-                    location =
-                    { begin_pos = { line = 1; col = 21 };
-                      end_pos = { line = 1; col = 23 } }
-                    }
-                  ],
-                { data = (Id "Result");
-                  location =
-                  { begin_pos = { line = 1; col = 25 };
-                    end_pos = { line = 1; col = 31 } }
-                  }
-                ));
-             location =
-             { begin_pos = { line = 1; col = 16 };
-               end_pos = { line = 1; col = 31 } }
-             });
-        location =
-        { begin_pos = { line = 1; col = 14 }; end_pos = { line = 1; col = 31 } }
-        }
+      (FromTyExpr
+         (TConstr ([(TVar (TyVar "a")); (TVar (TyVar "a"))], (Id "Result"))))
       } |}]
 ;;
 
@@ -687,62 +274,10 @@ let%expect_test "Ty.Decl parametrized from ty expr test" =
   parse_and_print {| type ('a, 'b) list = ('a, 'b) Result |};
   [%expect
     {|
-    { name =
-      { data = (Id "list");
-        location =
-        { begin_pos = { line = 1; col = 15 }; end_pos = { line = 1; col = 19 } }
-        };
-      params =
-      [{ data = (TyVar "a");
-         location =
-         { begin_pos = { line = 1; col = 7 }; end_pos = { line = 1; col = 9 } } };
-        { data = (TyVar "b");
-          location =
-          { begin_pos = { line = 1; col = 11 }; end_pos = { line = 1; col = 13 }
-            }
-          }
-        ];
+    { name = (Id "list"); params = [(TyVar "a"); (TyVar "b")];
       representation =
-      { data =
-        (FromTyExpr
-           { data =
-             (TConstr (
-                [{ data =
-                   (TVar
-                      { data = (TyVar "a");
-                        location =
-                        { begin_pos = { line = 1; col = 23 };
-                          end_pos = { line = 1; col = 25 } }
-                        });
-                   location =
-                   { begin_pos = { line = 1; col = 23 };
-                     end_pos = { line = 1; col = 25 } }
-                   };
-                  { data =
-                    (TVar
-                       { data = (TyVar "b");
-                         location =
-                         { begin_pos = { line = 1; col = 27 };
-                           end_pos = { line = 1; col = 29 } }
-                         });
-                    location =
-                    { begin_pos = { line = 1; col = 27 };
-                      end_pos = { line = 1; col = 29 } }
-                    }
-                  ],
-                { data = (Id "Result");
-                  location =
-                  { begin_pos = { line = 1; col = 31 };
-                    end_pos = { line = 1; col = 37 } }
-                  }
-                ));
-             location =
-             { begin_pos = { line = 1; col = 22 };
-               end_pos = { line = 1; col = 37 } }
-             });
-        location =
-        { begin_pos = { line = 1; col = 20 }; end_pos = { line = 1; col = 37 } }
-        }
+      (FromTyExpr
+         (TConstr ([(TVar (TyVar "a")); (TVar (TyVar "b"))], (Id "Result"))))
       } |}]
 ;;
 
@@ -750,57 +285,17 @@ let%expect_test "Ty.Decl empty type test" =
   parse_and_print {| type int |};
   [%expect
     {|
-    { name =
-      { data = (Id "int");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 9 } } };
-      params = [];
-      representation =
-      { data = (FromConstrs []);
-        location =
-        { begin_pos = { line = 1; col = 9 }; end_pos = { line = 1; col = 9 } } }
-      } |}]
+    { name = (Id "int"); params = []; representation = (FromConstrs []) } |}]
 ;;
 
 let%expect_test "Ty.Decl empty constructors test" =
   parse_and_print {| type ab = A | B |};
   [%expect
     {|
-    { name =
-      { data = (Id "ab");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 8 } } };
-      params = [];
+    { name = (Id "ab"); params = [];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "A");
-                  location =
-                  { begin_pos = { line = 1; col = 11 };
-                    end_pos = { line = 1; col = 12 } }
-                  };
-                args = None };
-              location =
-              { begin_pos = { line = 1; col = 11 };
-                end_pos = { line = 1; col = 12 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "B");
-                   location =
-                   { begin_pos = { line = 1; col = 15 };
-                     end_pos = { line = 1; col = 16 } }
-                   };
-                 args = None };
-               location =
-               { begin_pos = { line = 1; col = 15 };
-                 end_pos = { line = 1; col = 16 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 9 }; end_pos = { line = 1; col = 16 } } }
+      (FromConstrs
+         [{ name = (Id "A"); args = None }; { name = (Id "B"); args = None }])
       } |}]
 ;;
 
@@ -808,41 +303,10 @@ let%expect_test "Ty.Decl empty constructors leading bar test" =
   parse_and_print {| type ab = | A | B |};
   [%expect
     {|
-    { name =
-      { data = (Id "ab");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 8 } } };
-      params = [];
+    { name = (Id "ab"); params = [];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "A");
-                  location =
-                  { begin_pos = { line = 1; col = 13 };
-                    end_pos = { line = 1; col = 14 } }
-                  };
-                args = None };
-              location =
-              { begin_pos = { line = 1; col = 13 };
-                end_pos = { line = 1; col = 14 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "B");
-                   location =
-                   { begin_pos = { line = 1; col = 17 };
-                     end_pos = { line = 1; col = 18 } }
-                   };
-                 args = None };
-               location =
-               { begin_pos = { line = 1; col = 17 };
-                 end_pos = { line = 1; col = 18 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 9 }; end_pos = { line = 1; col = 18 } } }
+      (FromConstrs
+         [{ name = (Id "A"); args = None }; { name = (Id "B"); args = None }])
       } |}]
 ;;
 
@@ -850,42 +314,10 @@ let%expect_test "Ty.Decl single constructor test" =
   parse_and_print {| type a = | A of int |};
   [%expect
     {|
-    { name =
-      { data = (Id "a");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 7 } } };
-      params = [];
+    { name = (Id "a"); params = [];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "A");
-                  location =
-                  { begin_pos = { line = 1; col = 12 };
-                    end_pos = { line = 1; col = 13 } }
-                  };
-                args =
-                (Some { data =
-                        (TConstr ([],
-                           { data = (Id "int");
-                             location =
-                             { begin_pos = { line = 1; col = 17 };
-                               end_pos = { line = 1; col = 20 } }
-                             }
-                           ));
-                        location =
-                        { begin_pos = { line = 1; col = 16 };
-                          end_pos = { line = 1; col = 20 } }
-                        })
-                };
-              location =
-              { begin_pos = { line = 1; col = 12 };
-                end_pos = { line = 1; col = 20 } }
-              }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 8 }; end_pos = { line = 1; col = 20 } } }
+      (FromConstrs
+         [{ name = (Id "A"); args = (Some (TConstr ([], (Id "int")))) }])
       } |}]
 ;;
 
@@ -893,76 +325,11 @@ let%expect_test "Ty.Decl Result test" =
   parse_and_print {| type ('a, 'b) result = Ok of 'a | Error of 'b |};
   [%expect
     {|
-    { name =
-      { data = (Id "result");
-        location =
-        { begin_pos = { line = 1; col = 15 }; end_pos = { line = 1; col = 21 } }
-        };
-      params =
-      [{ data = (TyVar "a");
-         location =
-         { begin_pos = { line = 1; col = 7 }; end_pos = { line = 1; col = 9 } } };
-        { data = (TyVar "b");
-          location =
-          { begin_pos = { line = 1; col = 11 }; end_pos = { line = 1; col = 13 }
-            }
-          }
-        ];
+    { name = (Id "result"); params = [(TyVar "a"); (TyVar "b")];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "Ok");
-                  location =
-                  { begin_pos = { line = 1; col = 24 };
-                    end_pos = { line = 1; col = 26 } }
-                  };
-                args =
-                (Some { data =
-                        (TVar
-                           { data = (TyVar "a");
-                             location =
-                             { begin_pos = { line = 1; col = 30 };
-                               end_pos = { line = 1; col = 32 } }
-                             });
-                        location =
-                        { begin_pos = { line = 1; col = 30 };
-                          end_pos = { line = 1; col = 32 } }
-                        })
-                };
-              location =
-              { begin_pos = { line = 1; col = 24 };
-                end_pos = { line = 1; col = 32 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "Error");
-                   location =
-                   { begin_pos = { line = 1; col = 35 };
-                     end_pos = { line = 1; col = 40 } }
-                   };
-                 args =
-                 (Some { data =
-                         (TVar
-                            { data = (TyVar "b");
-                              location =
-                              { begin_pos = { line = 1; col = 44 };
-                                end_pos = { line = 1; col = 46 } }
-                              });
-                         location =
-                         { begin_pos = { line = 1; col = 44 };
-                           end_pos = { line = 1; col = 46 } }
-                         })
-                 };
-               location =
-               { begin_pos = { line = 1; col = 35 };
-                 end_pos = { line = 1; col = 46 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 22 }; end_pos = { line = 1; col = 46 } }
-        }
+      (FromConstrs
+         [{ name = (Id "Ok"); args = (Some (TVar (TyVar "a"))) };
+           { name = (Id "Error"); args = (Some (TVar (TyVar "b"))) }])
       } |}]
 ;;
 
@@ -970,58 +337,11 @@ let%expect_test "Ty.Decl option test" =
   parse_and_print {| type 'a option = Some of 'a | None |};
   [%expect
     {|
-    { name =
-      { data = (Id "option");
-        location =
-        { begin_pos = { line = 1; col = 9 }; end_pos = { line = 1; col = 15 } } };
-      params =
-      [{ data = (TyVar "a");
-         location =
-         { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 8 } } }
-        ];
+    { name = (Id "option"); params = [(TyVar "a")];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "Some");
-                  location =
-                  { begin_pos = { line = 1; col = 18 };
-                    end_pos = { line = 1; col = 22 } }
-                  };
-                args =
-                (Some { data =
-                        (TVar
-                           { data = (TyVar "a");
-                             location =
-                             { begin_pos = { line = 1; col = 26 };
-                               end_pos = { line = 1; col = 28 } }
-                             });
-                        location =
-                        { begin_pos = { line = 1; col = 26 };
-                          end_pos = { line = 1; col = 28 } }
-                        })
-                };
-              location =
-              { begin_pos = { line = 1; col = 18 };
-                end_pos = { line = 1; col = 28 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "None");
-                   location =
-                   { begin_pos = { line = 1; col = 31 };
-                     end_pos = { line = 1; col = 35 } }
-                   };
-                 args = None };
-               location =
-               { begin_pos = { line = 1; col = 31 };
-                 end_pos = { line = 1; col = 35 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 16 }; end_pos = { line = 1; col = 35 } }
-        }
+      (FromConstrs
+         [{ name = (Id "Some"); args = (Some (TVar (TyVar "a"))) };
+           { name = (Id "None"); args = None }])
       } |}]
 ;;
 
@@ -1029,115 +349,28 @@ let%expect_test "Ty.Decl bool test" =
   parse_and_print {| type bool = true | false |};
   [%expect
     {|
-    { name =
-      { data = (Id "bool");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 10 } } };
-      params = [];
+    { name = (Id "bool"); params = [];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "true");
-                  location =
-                  { begin_pos = { line = 1; col = 13 };
-                    end_pos = { line = 1; col = 17 } }
-                  };
-                args = None };
-              location =
-              { begin_pos = { line = 1; col = 13 };
-                end_pos = { line = 1; col = 17 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "false");
-                   location =
-                   { begin_pos = { line = 1; col = 20 };
-                     end_pos = { line = 1; col = 25 } }
-                   };
-                 args = None };
-               location =
-               { begin_pos = { line = 1; col = 20 };
-                 end_pos = { line = 1; col = 25 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 11 }; end_pos = { line = 1; col = 25 } }
-        }
+      (FromConstrs
+         [{ name = (Id "true"); args = None };
+           { name = (Id "false"); args = None }])
       } |}]
 ;;
 
 let%expect_test "Ty.Decl list test" =
-  parse_and_print {| type ('a) list = (::) of 'a list | [] |};
+  parse_and_print {| type ('a) list = (::) of 'a * 'a list | [] |};
   [%expect
     {|
-    { name =
-      { data = (Id "list");
-        location =
-        { begin_pos = { line = 1; col = 11 }; end_pos = { line = 1; col = 15 } }
-        };
-      params =
-      [{ data = (TyVar "a");
-         location =
-         { begin_pos = { line = 1; col = 7 }; end_pos = { line = 1; col = 9 } } }
-        ];
+    { name = (Id "list"); params = [(TyVar "a")];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "::");
-                  location =
-                  { begin_pos = { line = 1; col = 18 };
-                    end_pos = { line = 1; col = 22 } }
-                  };
-                args =
-                (Some { data =
-                        (TConstr (
-                           [{ data =
-                              (TVar
-                                 { data = (TyVar "a");
-                                   location =
-                                   { begin_pos = { line = 1; col = 26 };
-                                     end_pos = { line = 1; col = 28 } }
-                                   });
-                              location =
-                              { begin_pos = { line = 1; col = 26 };
-                                end_pos = { line = 1; col = 28 } }
-                              }
-                             ],
-                           { data = (Id "list");
-                             location =
-                             { begin_pos = { line = 1; col = 29 };
-                               end_pos = { line = 1; col = 33 } }
-                             }
-                           ));
-                        location =
-                        { begin_pos = { line = 1; col = 26 };
-                          end_pos = { line = 1; col = 33 } }
-                        })
-                };
-              location =
-              { begin_pos = { line = 1; col = 18 };
-                end_pos = { line = 1; col = 33 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "[]");
-                   location =
-                   { begin_pos = { line = 1; col = 36 };
-                     end_pos = { line = 1; col = 38 } }
-                   };
-                 args = None };
-               location =
-               { begin_pos = { line = 1; col = 36 };
-                 end_pos = { line = 1; col = 38 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 16 }; end_pos = { line = 1; col = 38 } }
-        }
+      (FromConstrs
+         [{ name = (Id "::");
+            args =
+            (Some (TTuple
+                     [(TVar (TyVar "a"));
+                       (TConstr ([(TVar (TyVar "a"))], (Id "list")))]))
+            };
+           { name = (Id "[]"); args = None }])
       } |}]
 ;;
 
@@ -1146,141 +379,13 @@ let%expect_test "Ty.Decl overriding special constructors test" =
     {| type t = | true of int | false of int | (::) of string | [] of string | () of bool |};
   [%expect
     {|
-    { name =
-      { data = (Id "t");
-        location =
-        { begin_pos = { line = 1; col = 6 }; end_pos = { line = 1; col = 7 } } };
-      params = [];
+    { name = (Id "t"); params = [];
       representation =
-      { data =
-        (FromConstrs
-           [{ data =
-              { name =
-                { data = (Id "true");
-                  location =
-                  { begin_pos = { line = 1; col = 12 };
-                    end_pos = { line = 1; col = 16 } }
-                  };
-                args =
-                (Some { data =
-                        (TConstr ([],
-                           { data = (Id "int");
-                             location =
-                             { begin_pos = { line = 1; col = 20 };
-                               end_pos = { line = 1; col = 23 } }
-                             }
-                           ));
-                        location =
-                        { begin_pos = { line = 1; col = 19 };
-                          end_pos = { line = 1; col = 23 } }
-                        })
-                };
-              location =
-              { begin_pos = { line = 1; col = 12 };
-                end_pos = { line = 1; col = 23 } }
-              };
-             { data =
-               { name =
-                 { data = (Id "false");
-                   location =
-                   { begin_pos = { line = 1; col = 26 };
-                     end_pos = { line = 1; col = 31 } }
-                   };
-                 args =
-                 (Some { data =
-                         (TConstr ([],
-                            { data = (Id "int");
-                              location =
-                              { begin_pos = { line = 1; col = 35 };
-                                end_pos = { line = 1; col = 38 } }
-                              }
-                            ));
-                         location =
-                         { begin_pos = { line = 1; col = 34 };
-                           end_pos = { line = 1; col = 38 } }
-                         })
-                 };
-               location =
-               { begin_pos = { line = 1; col = 26 };
-                 end_pos = { line = 1; col = 38 } }
-               };
-             { data =
-               { name =
-                 { data = (Id "::");
-                   location =
-                   { begin_pos = { line = 1; col = 41 };
-                     end_pos = { line = 1; col = 45 } }
-                   };
-                 args =
-                 (Some { data =
-                         (TConstr ([],
-                            { data = (Id "string");
-                              location =
-                              { begin_pos = { line = 1; col = 49 };
-                                end_pos = { line = 1; col = 55 } }
-                              }
-                            ));
-                         location =
-                         { begin_pos = { line = 1; col = 48 };
-                           end_pos = { line = 1; col = 55 } }
-                         })
-                 };
-               location =
-               { begin_pos = { line = 1; col = 41 };
-                 end_pos = { line = 1; col = 55 } }
-               };
-             { data =
-               { name =
-                 { data = (Id "[]");
-                   location =
-                   { begin_pos = { line = 1; col = 58 };
-                     end_pos = { line = 1; col = 60 } }
-                   };
-                 args =
-                 (Some { data =
-                         (TConstr ([],
-                            { data = (Id "string");
-                              location =
-                              { begin_pos = { line = 1; col = 64 };
-                                end_pos = { line = 1; col = 70 } }
-                              }
-                            ));
-                         location =
-                         { begin_pos = { line = 1; col = 63 };
-                           end_pos = { line = 1; col = 70 } }
-                         })
-                 };
-               location =
-               { begin_pos = { line = 1; col = 58 };
-                 end_pos = { line = 1; col = 70 } }
-               };
-             { data =
-               { name =
-                 { data = (Id "()");
-                   location =
-                   { begin_pos = { line = 1; col = 73 };
-                     end_pos = { line = 1; col = 75 } }
-                   };
-                 args =
-                 (Some { data =
-                         (TConstr ([],
-                            { data = (Id "bool");
-                              location =
-                              { begin_pos = { line = 1; col = 79 };
-                                end_pos = { line = 1; col = 83 } }
-                              }
-                            ));
-                         location =
-                         { begin_pos = { line = 1; col = 78 };
-                           end_pos = { line = 1; col = 83 } }
-                         })
-                 };
-               location =
-               { begin_pos = { line = 1; col = 73 };
-                 end_pos = { line = 1; col = 83 } }
-               }
-             ]);
-        location =
-        { begin_pos = { line = 1; col = 8 }; end_pos = { line = 1; col = 83 } } }
+      (FromConstrs
+         [{ name = (Id "true"); args = (Some (TConstr ([], (Id "int")))) };
+           { name = (Id "false"); args = (Some (TConstr ([], (Id "int")))) };
+           { name = (Id "::"); args = (Some (TConstr ([], (Id "string")))) };
+           { name = (Id "[]"); args = (Some (TConstr ([], (Id "string")))) };
+           { name = (Id "()"); args = (Some (TConstr ([], (Id "bool")))) }])
       } |}]
 ;;
