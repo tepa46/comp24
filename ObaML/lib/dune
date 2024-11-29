@@ -1,10 +1,16 @@
+(copy_files# wrap/wrap.ml{,i})
+
+(copy_files# navi/navi.ml{,i})
+
+(copy_files# ast/ast.ml{,i})
+
+(copy_files# located/located.ml{,i})
+
 (library
- (name ObaML_lib)
- (public_name ObaML.Lib)
- (modules Ast Parser Inferencer InferencerTypes)
- (libraries angstrom)
- (inline_tests)
+ (name ObaML)
+ (public_name ObaML)
+ (modules Ast Located Navi Wrap)
  (preprocess
-  (pps ppx_expect ppx_deriving.show ppx_deriving.eq))
+  (pps ppx_deriving.show ppx_deriving.ord ppx_deriving.eq))
  (instrumentation
   (backend bisect_ppx)))
