@@ -500,9 +500,9 @@ let rec infer_exp exp env =
     return (subst, typ)
   | Ast.EIf (exp1, exp2, exp3) ->
     let* subst1, typ1 = infer_exp exp1 env in
-    let env = TypeEnv.apply subst1 env in 
+    let env = TypeEnv.apply subst1 env in
     let* subst2, typ2 = infer_exp exp2 env in
-    let env = TypeEnv.apply subst2 env in 
+    let env = TypeEnv.apply subst2 env in
     let* subst3, typ3 = infer_exp exp3 env in
     let* subst4 = Subst.unify typ1 tprim_bool in
     let* subst5 = Subst.unify typ2 typ3 in
