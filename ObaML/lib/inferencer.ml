@@ -241,101 +241,13 @@ module TypeEnv = struct
   let extend k v mp = StringMap.add k v mp
   let empty = StringMap.empty
 
-  let init_env =
-    let init_env =
-      extend "( * )" (Scheme (VarSet.empty, tprim_int @-> tprim_int @-> tprim_int)) empty
-    in
-    let init_env =
-      extend
-        "( / )"
-        (Scheme (VarSet.empty, tprim_int @-> tprim_int @-> tprim_int))
-        init_env
-    in
-    let init_env =
-      extend
-        "( + )"
-        (Scheme (VarSet.empty, tprim_int @-> tprim_int @-> tprim_int))
-        init_env
-    in
-    let init_env =
-      extend
-        "( - )"
-        (Scheme (VarSet.empty, tprim_int @-> tprim_int @-> tprim_int))
-        init_env
-    in
-    let init_env =
-      extend
-        "( = )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( == )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( <> )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( != )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( < )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( <= )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( > )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( >= )"
-        (Scheme (VarSet.singleton (-1), type_var (-1) @-> type_var (-1) @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( && )"
-        (Scheme (VarSet.empty, tprim_bool @-> tprim_bool @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend
-        "( || )"
-        (Scheme (VarSet.empty, tprim_bool @-> tprim_bool @-> tprim_bool))
-        init_env
-    in
-    let init_env =
-      extend "print_int" (Scheme (VarSet.empty, tprim_int @-> tprim_unit)) init_env
-    in
-    let init_env =
-      extend "print_string" (Scheme (VarSet.empty, tprim_string @-> tprim_unit)) init_env
-    in
-    let init_env =
-      extend "( ~+ )" (Scheme (VarSet.empty, tprim_int @-> tprim_int)) init_env
-    in
-    let init_env =
-      extend "( ~- )" (Scheme (VarSet.empty, tprim_int @-> tprim_int)) init_env
-    in
-    init_env
+  let construct_std std_lst =
+    List.fold_left
+      (fun acc std_elm ->
+        let key, value = std_elm in
+        extend key value acc)
+      empty
+      std_lst
   ;;
 
   let free_vars : t -> VarSet.t =
@@ -345,11 +257,12 @@ module TypeEnv = struct
   let apply s env = StringMap.map (Scheme.apply s) env
   let find name xs = StringMap.find_opt name xs
 
-  let pretty_pp_env fmt environment =
+  let pretty_pp_env fmt acc =
+    let std_lst, environment = acc in
     StringMap.iter
       (fun key data -> fprintf fmt "val %s : %a\n" key Scheme.pretty_pp_scheme data)
       (StringMap.filter
-         (fun tag sch -> StringMap.find_opt tag init_env <> Some sch)
+         (fun tag sch -> StringMap.find_opt tag (construct_std std_lst) <> Some sch)
          environment)
   ;;
 end
@@ -548,7 +461,8 @@ let rec infer_exp exp env =
   | Ast.EApp (exp1, exp2) ->
     let* return_type = fresh_var in
     let* subst1, typ1 = infer_exp exp1 env in
-    let* subst2, typ2 = infer_exp exp2 (TypeEnv.apply subst1 env) in
+    let env = TypeEnv.apply subst1 env in
+    let* subst2, typ2 = infer_exp exp2 env in
     let* subst3 = Subst.unify (Subst.apply subst2 typ1) (typ2 @-> return_type) in
     let* subst = Subst.compose_all [ subst1; subst2; subst3 ] in
     return (subst, Subst.apply subst return_type)
@@ -586,15 +500,18 @@ let rec infer_exp exp env =
     return (subst, typ)
   | Ast.EIf (exp1, exp2, exp3) ->
     let* subst1, typ1 = infer_exp exp1 env in
-    let* subst2, typ2 = infer_exp exp2 (TypeEnv.apply subst1 env) in
-    let* subst3, typ3 = infer_exp exp3 (TypeEnv.apply subst2 env) in
+    let env = TypeEnv.apply subst1 env in 
+    let* subst2, typ2 = infer_exp exp2 env in
+    let env = TypeEnv.apply subst2 env in 
+    let* subst3, typ3 = infer_exp exp3 env in
     let* subst4 = Subst.unify typ1 tprim_bool in
     let* subst5 = Subst.unify typ2 typ3 in
     let* subst = Subst.compose_all [ subst1; subst2; subst3; subst4; subst5 ] in
     return (subst, Subst.apply subst typ2)
   | Ast.ECons (exp1, exp2) ->
     let* subst1, typ1 = infer_exp exp1 env in
-    let* subst2, typ2 = infer_exp exp2 (TypeEnv.apply subst1 env) in
+    let env = TypeEnv.apply subst1 env in
+    let* subst2, typ2 = infer_exp exp2 env in
     let* subst3 = Subst.unify (tlist typ1) typ2 in
     let* subst = Subst.compose_all [ subst1; subst2; subst3 ] in
     return (subst, Subst.apply subst typ2)
@@ -664,7 +581,7 @@ and infer_rec_let value_binding_lst env =
   return (subst, new_env)
 ;;
 
-let infer_structure (structure : Ast.structure) =
+let infer_structure (structure : Ast.structure) std =
   List.fold_left
     (fun acc si ->
       let* env = acc in
@@ -680,8 +597,17 @@ let infer_structure (structure : Ast.structure) =
       | Ast.SIExpr expr ->
         let* _ = infer_exp expr env in
         return env)
-    (return TypeEnv.init_env)
+    (return std)
     structure
 ;;
 
-let run_stucture_infer (structure : Ast.structure) = run (infer_structure structure)
+let run_structure_infer_with_custom_std
+  (structure : Ast.structure)
+  (std_list : (string * Typedtree.scheme) list)
+  =
+  run (infer_structure structure (TypeEnv.construct_std std_list))
+;;
+
+let run_structure_infer (structure : Ast.structure) =
+  run_structure_infer_with_custom_std structure Std.std_lst
+;;
