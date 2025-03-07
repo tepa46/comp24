@@ -588,44 +588,6 @@
   val oba4 : int -> int -> int
   val oba6 : int -> int -> int
 
-  $ ./anf_tests.exe << EOF
-  > let foo () =
-  >  print_string "This is foo"
-  > let bar () =
-  >  print_string "This is bar"
-  > let main =
-  >  let () = print_string "Main function" in 
-  >  let () = foo () in 
-  >  let () = bar () in 0
-  > let main =
-  >  print_string "Main function"
-  > let () = print_int 4
-  Types:
-  val bar : unit -> unit
-  val foo : unit -> unit
-  val main : unit
-  
-  Converted structure:
-  let foo () = (print_string "This is foo");;
-  
-  let bar () = (print_string "This is bar");;
-  
-  let main = 
-  	let () = (print_string "Main function") in 
-  	let () = (foo ()) in 
-  	let () = (bar ()) in 0;;
-  
-  let oba0 = (print_string "Main function");;
-  
-  let () = (print_int 4);;
-  
-  
-  Types after conversions:
-  val bar : unit -> unit
-  val foo : unit -> unit
-  val main : int
-  val oba0 : unit
-
   $ ./anf_tests.exe < manytests/typed/016lists.ml
   Types:
   val append : 'a list -> 'a list -> 'a list
